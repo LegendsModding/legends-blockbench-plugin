@@ -1,4 +1,3 @@
-//ONLY WORKS ON BEDROCK ENTITY!!!!
 //All the @ts-ignore are due to blockbench-types not being as up to date as the blockbench source 
 (function () {
 	var codec: Codec = new Codec('minecraftLegends', {
