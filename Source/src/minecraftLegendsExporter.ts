@@ -9,7 +9,7 @@
 		compile(scale: any) {
 			let bones: any = []; // Converted Minecraft Legends bones
 
-			// Turns a Group (blockbensh bone) into a Minecraft Legends bone including any locators in that bone.
+			// Turns a Group (BlockBench bone) into a Minecraft Legends bone including any locators in that bone.
 			function addBone(group: Group) {
 				// Find all locators for this bone
 				let locators: Locator[] = [];
@@ -77,6 +77,15 @@
 					return;
 				addBone(group);
 			})
+			
+			// Process existing Blockbench meshes
+			function collectMeshes() {
+				let old_meshes = [];
+				Mesh.all.forEach(mesh => {
+				old_meshes.push(mesh);
+			})
+				return old_meshes;
+			}
 
 			// Convert all exportable cubes into Blockbench Meshes.
 			// Cubes are defined by their center and size, and Meshes are defined by vertices and faces.
@@ -142,13 +151,14 @@
 					})
 					new_meshes.push(mesh);
 				})
+    
 				return new_meshes;
 			}
 
 			// Minecraft Legends Meshes
 			let compiledMeshes: any = [];
 
-			// Converts a Blockbensh Mesh into a Minecraft Legends Mesh.
+			// Converts a BlockBench Mesh into a Minecraft Legends Mesh.
 			// A Minecraft Legends Mesh is a skinned mesh, defined by vertices and triangles, where the vertices
 			// are specified in the bind pose.
 			// Each vertex here has a single bone with a bone weight of 1.
@@ -253,7 +263,9 @@
 
 				compiledMeshes.push(compliedMesh)
 			}
-
+			collectMeshes().forEach((m: Mesh) => {
+				addMesh(m);
+			})
 			// Convert cubes to Minecraft Legends Meshes
 			convertCubesToMeshes().forEach((m: Mesh) => {
 				addMesh(m);
@@ -347,7 +359,6 @@
 			name: 'Minecraft Legends Exporter',
 			icon: 'icon-format_block',
 			category: 'export',
-			condition: () => Format.id == "bedrock" || Format.id == "bedrock_old",
 			click: function () {
 				if (codec.export !== undefined) {
 					codec.export();

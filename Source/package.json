@@ -1,9 +1,11 @@
 {
   "name": "blockbenchplugins",
   "version": "1.0.0",
-  "description": "Blockbench plugin to export bedrock models to Minecraft Legends",
+  "description": "Blockbench plugin to export Bedrock and Generic models to Minecraft Legends",
   "main": "index.js",
   "dependencies": {
+    "@types/three": "^0.169.0",
+    "three": "^0.169.0",
     "typescript": "^4.9.5"
   },
   "scripts": {
@@ -13,7 +15,11 @@
   "devDependencies": {
     "blockbench-types": "^4.6.1"
   },
-  "keywords": [],
-  "author": "HouseOfHow",
-  "license": "ISC"
+  "keywords": ["blockbench", "polymesh"],
+  "contributors": [
+    "HouseOfHow",
+    "Mojang",
+    "Legends Modding"
+  ],
+  "license": "MIT"
 }

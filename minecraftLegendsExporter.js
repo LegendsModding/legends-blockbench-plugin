@@ -1,12 +1,3 @@
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 //ONLY WORKS ON BEDROCK ENTITY!!!!
 //All the @ts-ignore are due to blockbench-types not being as up to date as the blockbench source 
 (function () {
@@ -16,7 +7,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         remember: false,
         compile(scale) {
             let bones = []; // Converted Minecraft Legends bones
-            // Turns a Group (blockbensh bone) into a Minecraft Legends bone including any locators in that bone.
+            // Turns a Group (BlockBench bone) into a Minecraft Legends bone including any locators in that bone.
             function addBone(group) {
                 // Find all locators for this bone
                 let locators = [];
@@ -77,6 +68,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
                     return;
                 addBone(group);
             });
+            // Process existing Blockbench meshes
+            function collectMeshes() {
+                let old_meshes = [];
+                Mesh.all.forEach(mesh => {
+                    old_meshes.push(mesh);
+                });
+                return old_meshes;
+            }
             // Convert all exportable cubes into Blockbench Meshes.
             // Cubes are defined by their center and size, and Meshes are defined by vertices and faces.
             // So this will create 8 vertices and 6 faces per cube.
@@ -144,7 +143,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
             }
             // Minecraft Legends Meshes
             let compiledMeshes = [];
-            // Converts a Blockbensh Mesh into a Minecraft Legends Mesh.
+            // Converts a BlockBench Mesh into a Minecraft Legends Mesh.
             // A Minecraft Legends Mesh is a skinned mesh, defined by vertices and triangles, where the vertices
             // are specified in the bind pose.
             // Each vertex here has a single bone with a bone weight of 1.
@@ -232,6 +231,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
                 };
                 compiledMeshes.push(compliedMesh);
             }
+            collectMeshes().forEach((m) => {
+                addMesh(m);
+            });
             // Convert cubes to Minecraft Legends Meshes
             convertCubesToMeshes().forEach((m) => {
                 addMesh(m);
@@ -264,60 +266,57 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
             include_alpha: { label: 'Alpha Test', type: 'checkbox', value: true },
             include_animations: { label: 'codec.common.export_animations', type: 'checkbox', value: true }
         },
-        export() {
-            return __awaiter(this, void 0, void 0, function* () {
-                if (Object.keys(this.export_options).length) {
-                    if ((yield this.promptExportOptions()) === null) {
-                        return;
+        async export() {
+            if (Object.keys(this.export_options).length) {
+                if (await this.promptExportOptions() === null) {
+                    return;
+                }
+            }
+            let options;
+            options = Object.assign(this.getExportOptions(), options);
+            // Scale the model to fit Minecraft Legends ratio
+            options.scale = options.scale / 16;
+            if (options.include_animations) {
+                let form = {};
+                let keys = [];
+                let animations = Blockbench.Animation.all.slice();
+                if (Format.animation_files)
+                    animations.sort((a1, a2) => a1.path.hashCode() - a2.path.hashCode());
+                animations.forEach(animation => {
+                    // @ts-ignore
+                    let key = animation.name;
+                    keys.push(key);
+                    form[key.hashCode()] = { label: key, type: 'checkbox', value: true };
+                });
+                let dialog = new Dialog({
+                    id: 'animation_export',
+                    title: 'dialog.animation_export.title',
+                    form,
+                    onConfirm(form_result) {
+                        dialog.hide();
+                        keys = keys.filter((key) => form_result ? [key.hashCode()] : Number);
+                        MassExport(options, keys);
                     }
-                }
-                let options;
-                options = Object.assign(this.getExportOptions(), options);
-                // Scale the model to fit Minecraft Legends ratio
-                options.scale = options.scale / 16;
-                if (options.include_animations) {
-                    let form = {};
-                    let keys = [];
-                    let animations = Blockbench.Animation.all.slice();
-                    if (Format.animation_files)
-                        animations.sort((a1, a2) => a1.path.hashCode() - a2.path.hashCode());
-                    animations.forEach(animation => {
-                        // @ts-ignore
-                        let key = animation.name;
-                        keys.push(key);
-                        form[key.hashCode()] = { label: key, type: 'checkbox', value: true };
-                    });
-                    let dialog = new Dialog({
-                        id: 'animation_export',
-                        title: 'dialog.animation_export.title',
-                        form,
-                        onConfirm(form_result) {
-                            dialog.hide();
-                            keys = keys.filter((key) => form_result ? [key.hashCode()] : Number);
-                            MassExport(options, keys);
-                        }
-                    });
-                    form.select_all_none = {
-                        type: 'buttons',
-                        buttons: ['generic.select_all', 'generic.select_none'],
-                        click(index) {
-                            let values = {};
-                            keys.forEach(key => values[key.hashCode()] = (index == 0));
-                            dialog.setFormValues(values);
-                        }
-                    };
-                    dialog.show();
-                }
-                else {
-                    MassExport(options, undefined);
-                }
-            });
+                });
+                form.select_all_none = {
+                    type: 'buttons',
+                    buttons: ['generic.select_all', 'generic.select_none'],
+                    click(index) {
+                        let values = {};
+                        keys.forEach(key => values[key.hashCode()] = (index == 0));
+                        dialog.setFormValues(values);
+                    }
+                };
+                dialog.show();
+            }
+            else {
+                MassExport(options, undefined);
+            }
         },
         export_action: new Action('export_minecraftLegends', {
             name: 'Minecraft Legends Exporter',
             icon: 'icon-format_block',
             category: 'export',
-            condition: () => Format.id == "bedrock" || Format.id == "bedrock_old",
             click: function () {
                 if (codec.export !== undefined) {
                     codec.export();
